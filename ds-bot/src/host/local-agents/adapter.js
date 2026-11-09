@@ -6,7 +6,7 @@
 import { createHash } from 'node:crypto'
 import { LlmAdapter, LlmError } from '@deepseek-ai/dsh-llm'
 import { textOf } from '../text.js'
-import { engineOf, cliMode } from './engines.js'
+import { engineOf, cliMode, ONE_SHOT_PREFIX } from './engines.js'
 import { LoopbackMcp } from './mcp.js'
 
 export const DEFAULT_CONTEXT_WINDOW = 200_000
@@ -273,7 +273,25 @@ export class LocalAgentAdapter extends LlmAdapter {
   }
 
   // ---------------------------------------------------------------------------
+  // A one-shot reads a conversation that may hold anything, so it never gets to change files.
+  presetOf(sessionId) {
+    return String(sessionId).startsWith(ONE_SHOT_PREFIX) ? 'read-only' : this.deps.presetFor(sessionId)
+  }
+
   async *stream(options) {
+    if (!String(options.sessionId).startsWith(ONE_SHOT_PREFIX)) {
+      yield* this.serve(options)
+      return
+    }
+    try {
+      yield* this.serve(options)
+    } finally {
+      await this.closeSession(options.sessionId).catch(() => {})
+      this.deps.dropRecord(options.sessionId)
+    }
+  }
+
+  async *serve(options) {
     if (this.disposed) throw new LlmError('the local agents adapter is disposed', 'NO_ADAPTER')
     if (options.purpose === 'session-title') {
       const first = (options.messages ?? []).find(message => message.role === 'user')
@@ -335,7 +353,7 @@ export class LocalAgentAdapter extends LlmAdapter {
     const cwd = live.cwd ?? await this.deps.cwdFor(sessionId)
     live.cwd = cwd
 
-    const preset = this.deps.presetFor(sessionId)
+    const preset = this.presetOf(sessionId)
     const mode = cliMode(live.spec.kind, preset)
     const instructions = system === '' ? undefined : system
 
@@ -432,7 +450,7 @@ export class LocalAgentAdapter extends LlmAdapter {
       // history, once, so the user sees the answer instead of this failure.
       if (live.resumeLost === true && options[RESUME_RETRIED] !== true) {
         live.resumeLost = false
-        yield* this.stream({ ...options, [RESUME_RETRIED]: true })
+        yield* this.serve({ ...options, [RESUME_RETRIED]: true })
         return
       }
       throw error
@@ -542,7 +560,7 @@ export class LocalAgentAdapter extends LlmAdapter {
         case 'permission': {
           // The preset answers what it already decides, also on an agent with no
           // matching mode of its own: full access allows, read-only refuses a change.
-          const answer = presetAnswer(this.deps.presetFor(live.sessionId), event)
+          const answer = presetAnswer(this.presetOf(live.sessionId), event)
           if (answer !== undefined) { event.reply(answer); break }
           yield* closeBlocks()
           live.state = 'suspended'

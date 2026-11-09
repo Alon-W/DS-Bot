@@ -74,5 +74,5 @@ so full-access Bots would control that machine.
 
 Add an MCP capability named `agentbus` with command `python3` and arguments
 `/opt/agent-bus/agent_bus.py` and `mcp` (one per line), then add it to each Bot. A Bot's
-bus address is `dsbot-<botId>`. Automatic memory review needs a non-local model, so it
-does not run on CLI Bots alone.
+bus address is `dsbot-<botId>`. Automatic memory review runs through each Bot's own CLI,
+in a throwaway read-only session, after each turn.

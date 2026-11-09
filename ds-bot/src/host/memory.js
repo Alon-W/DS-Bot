@@ -25,6 +25,7 @@
 // provider's prefix cache holds; a fresh part, or a checkpoint (which breaks the cache
 // anyway), freezes it anew.
 import { createHash, randomUUID } from 'node:crypto'
+import { ONE_SHOT_PREFIX } from './local-agents/engines.js'
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, truncateSync, unlinkSync, writeFileSync } from 'node:fs'
 import { appendFile, mkdir, rename, unlink, writeFile } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
@@ -1225,10 +1226,10 @@ export function install(rt) {
 
   async function modelFor(bot) {
     const desired = await rt.desiredModel(bot)
-    // A local agent CLI answers through its own subscription, not a model API:
-    // its memory reads the team's default model when one is set.
+    // A local agent CLI's memory reads the team's default model when one is set,
+    // else its own CLI, as a one-shot (see oneShot).
     const team = rt.isLocalAgentRef?.(state.prefs.defaultBotModel) === true ? undefined : state.prefs.defaultBotModel
-    const ref = rt.isLocalAgentRef?.(desired) === true ? (team ?? null) : desired ?? await rt.defaultModel()
+    const ref = rt.isLocalAgentRef?.(desired) === true ? (team ?? desired) : desired ?? await rt.defaultModel()
     const route = ref === null ? undefined : splitRef(ref)
     if (route === undefined) throw new Error('No model is available. Add one in Settings > Models.')
     return route
@@ -1243,12 +1244,14 @@ export function install(rt) {
     const effort = efforts.some(entry => entry.id === 'off') ? 'off' : efforts.at(0)?.id
     const messages = [{ role: 'user', content: [{ type: 'text', text }] }]
     if (tag !== undefined) rt.tagUsage?.(messages, tag)
+    // Through a CLI the Bot's own session would take this as part of the conversation.
+    const sessionId = rt.isLocalAgentRef?.(`${route.provider}/${route.model}`) === true ? `${ONE_SHOT_PREFIX}${randomUUID()}` : tag?.sessionId
     for (const maxTokens of [SUMMARY_MAX_TOKENS, SUMMARY_RETRY_MAX_TOKENS]) {
       const assembler = new BlockAssembler()
       for await (const chunk of ctx.llm.stream({
         provider: route.provider,
         model: route.model,
-        ...(tag?.sessionId === undefined ? {} : { sessionId: tag.sessionId }),
+        ...(sessionId === undefined ? {} : { sessionId }),
         ...(effort === undefined ? {} : { reasoningEffort: effort }),
         system,
         messages,

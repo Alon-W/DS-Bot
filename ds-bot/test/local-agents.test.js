@@ -41,6 +41,7 @@ function makeAdapter({ records = {}, preset = 'workspace-write', acp = FIXTURES.
     },
     record: sessionId => records[sessionId],
     saveRecord: (sessionId, record) => { records[sessionId] = record },
+    dropRecord: (sessionId) => { delete records[sessionId] },
     presetFor: () => preset,
     cwdFor: async () => mkdtempSync(join(tmpdir(), 'dsb-cwd-')),
     probeCwd: () => mkdtempSync(join(tmpdir(), 'dsb-probe-')),
@@ -896,4 +897,14 @@ test('the stdio relay carries MCP to the loopback server, tool calls included', 
     child.kill()
     mcp.close()
   }
+})
+
+test('a one-shot call is read-only and leaves no session behind', async (t) => {
+  const records = {}
+  const adapter = makeAdapter({ records, preset: 'danger-full-access' })
+  t.after(() => adapter.dispose())
+  const reply = await collect(adapter.stream(options('oneshot:x', [user('m1', 'show-mode')])))
+  assert.match(reply.text, /mode: (ask|plan)/)
+  assert.equal(adapter.live.has('oneshot:x'), false)
+  assert.equal(records['oneshot:x'], undefined)
 })

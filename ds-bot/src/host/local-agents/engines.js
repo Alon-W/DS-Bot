@@ -12,6 +12,8 @@ export const KINDS = ['acp', 'codex', 'claude']
 // ships (`opencode`) took that provider's name and the LLM service failed to
 // load with a duplicate adapter.
 export const ROUTE_PREFIX = 'local-'
+// A session id with this prefix is one read-only CLI call, closed and forgotten after it.
+export const ONE_SHOT_PREFIX = 'oneshot:'
 
 const CLIS = {
   'devin-cli': { name: 'Devin CLI', kind: 'acp', command: 'devin', args: ['acp'], version: ['--version'], signedIn: { args: ['auth', 'status'] } },

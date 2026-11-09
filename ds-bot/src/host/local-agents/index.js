@@ -95,6 +95,10 @@ export function install(rt) {
       store().sessions[sessionId] = record
       void rt.save().catch(() => {})
     },
+    dropRecord: (sessionId) => {
+      delete store().sessions[sessionId]
+      void rt.save().catch(() => {})
+    },
     presetFor: (sessionId) => {
       const bot = rt.botOf(rt.selfOf(sessionId))
       const room = rt.roomOf(rt.groupOwners.get(sessionId)?.roomId)
