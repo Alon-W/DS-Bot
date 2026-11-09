@@ -47,7 +47,7 @@ export function createBridge({ rt, state, inbox, sync }) {
         continue
       }
       // DSH ignores a repeated requestId, so a crash before the unlink cannot start the turn twice.
-      await rt.sendUser({ sessionId: bot.id, content: [{ type: 'text', text: `${UNTRUSTED}\n${message.text}` }], requestId: `bus:${message.id}` })
+      await rt.sendUser({ sessionId: bot.id, content: [{ type: 'text', text: `${UNTRUSTED}\n[Your bus name is ${busName(bot.id)}. Pass exactly that as "from" when you answer with agentbus_send.]\n${message.text}` }], requestId: `bus:${message.id}` })
       await unlink(path)
     }
   }
