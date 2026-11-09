@@ -43,7 +43,9 @@ COPY --from=build /opt/ds-bot/ds-bot.tgz /opt/ds-bot/ds-bot.tgz
 RUN ln -s /opt/ds-bot/ds-bot.tgz /tmp/ds-bot.tgz
 # Agent CLIs that run the Bots. Pinned: update by changing the version and rebuilding.
 RUN npm install -g @anthropic-ai/claude-code@2.1.319
-ENV DISABLE_AUTOUPDATER=1
+RUN npm install -g @openai/codex@0.167.0
+RUN npm install -g opencode-ai@1.19.5
+ENV DISABLE_AUTOUPDATER=1 OPENCODE_DISABLE_AUTOUPDATE=1
 COPY --chmod=0755 docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY docker/docker.patch.yml /opt/ds-bot/docker.patch.yml
 
