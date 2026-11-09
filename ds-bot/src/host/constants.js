@@ -36,6 +36,9 @@ export const LONG_HEAD = 1000
 // DSH's read tool shows this much of one line (dsh-tool-fs `readMaxLineLength`, default).
 export const READ_LINE_MAX = 2000
 export const ROOM_REPLY_TIMEOUT_MS = 240_000
+// A CLI Bot is silent while one of its commands runs, so a turn it has begun keeps its
+// place in the round this long before it counts as missed.
+export const ROOM_CLI_TURN_MAX_MS = 30 * 60_000
 // Lines a member writes less than this apart while it works reach its group together.
 export const ROOM_STEP_GAP_MS = 30_000
 export const SOURCE_KIND = 'bot'

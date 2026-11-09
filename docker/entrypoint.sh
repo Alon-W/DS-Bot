@@ -75,6 +75,7 @@ if [ -n "${DSH_TRUSTED_HOST:-}" ]; then
   IFS=$old_ifs
 fi
 export HOME=/home/node
+export DS_BOT_AGENT_BUS=1
 # The bus server linked machines talk to. It prints its token at start, so keep it out of the logs.
 while :; do
   gosu node python3 /opt/agent-bus/phone_remote.py --port 8787 >/dev/null 2>&1 || true

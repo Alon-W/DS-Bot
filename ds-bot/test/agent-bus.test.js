@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, writeFileSync } from '
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { busNames, createBridge } from '../src/host/agent-bus.js'
+import { busNames, createBridge, install } from '../src/host/agent-bus.js'
 
 function setup({ sendUser = async () => {}, busy = new Set() } = {}) {
   const inbox = mkdtempSync(join(tmpdir(), 'bus-'))
@@ -79,4 +79,16 @@ test('a working Bot is reported busy, and only a change syncs again', async () =
   await bridge.tick()
   await bridge.tick()
   assert.deepEqual(synced, [['dsbot-one=idle'], ['dsbot-one=busy']])
+})
+
+test('the bridge stays off unless the DS Bot server switched it on', () => {
+  const was = process.env.DS_BOT_AGENT_BUS
+  delete process.env.DS_BOT_AGENT_BUS
+  const effects = []
+  try {
+    install({ ctx: { effect: fn => effects.push(fn), on: () => {} }, state: { bots: {} } })
+  } finally {
+    if (was !== undefined) process.env.DS_BOT_AGENT_BUS = was
+  }
+  assert.equal(effects.length, 0)
 })

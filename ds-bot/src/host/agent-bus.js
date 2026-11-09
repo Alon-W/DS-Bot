@@ -86,7 +86,9 @@ export function createBridge({ rt, state, inbox, sync, busyBots = () => new Set(
 export function install(rt) {
   const { ctx, state } = rt
   rt.busNameOf = botId => busNames(Object.values(state.bots)).get(botId)
-  if (!existsSync(join(BUS_DIR, 'agent_bus.py'))) return
+  // Only the DS Bot server itself switches the bridge on: the variable is not passed to Bots'
+  // CLIs, so test runs they start never reach the live bus.
+  if (process.env.DS_BOT_AGENT_BUS !== '1' || !existsSync(join(BUS_DIR, 'agent_bus.py'))) return
   // Session -> its Bot, while that session is working.
   const working = new Map()
   ctx.on('agent/status', ({ agent, status }) => {

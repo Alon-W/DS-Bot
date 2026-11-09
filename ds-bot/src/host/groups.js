@@ -22,7 +22,7 @@ import { readFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import { defineTool } from '@deepseek-ai/dsh-tools'
-import { GROUP_LINE_READ, LATE_ANSWER, ROOM_IDLE_RELAY_LIMIT, ROOM_REPLY_TIMEOUT_MS, ROOM_STEP_GAP_MS, ROOM_WORK_GRACE_MS, SOURCE_KIND, TEAM_TOOLS, TEXT_KEPT } from './constants.js'
+import { GROUP_LINE_READ, LATE_ANSWER, ROOM_IDLE_RELAY_LIMIT, ROOM_CLI_TURN_MAX_MS, ROOM_REPLY_TIMEOUT_MS, ROOM_STEP_GAP_MS, ROOM_WORK_GRACE_MS, SOURCE_KIND, TEAM_TOOLS, TEXT_KEPT } from './constants.js'
 import { escapeRegExp, headOf, splitRef, textOf } from './text.js'
 import { viaOf } from '../shared/im-platforms.js'
 import { mentionSpans, speakerOf } from '../shared/mentions.js'
@@ -519,18 +519,21 @@ export function install(rt) {
     const seenAt = room.seq
     // Checked before the delivery, which may start the turn at once.
     const busy = rt.live.get(sessionId)?.turn !== undefined || rt.hasSubagents?.(sessionId) === true
+    const cli = rt.isLocalAgentRef?.(member.model ?? member.appliedModel) === true
     const done = new Promise((resolve) => {
       let timer
       let grace
+      let stirred = false
       const finish = (value) => {
         clearTimeout(timer)
         clearTimeout(grace)
         rt.roomWaiters.delete(exchangeId)
         resolve(value)
       }
+      const quiet = () => (cli && stirred && Date.now() - startedAt < ROOM_CLI_TURN_MAX_MS ? touch() : finish({ missed: true }))
       const touch = () => {
         clearTimeout(timer)
-        timer = setTimeout(() => finish({ missed: true }), ROOM_REPLY_TIMEOUT_MS)
+        timer = setTimeout(quiet, ROOM_REPLY_TIMEOUT_MS)
       }
       const work = () => {
         onWork()
@@ -544,7 +547,7 @@ export function install(rt) {
         heard(step)
       }
       touch()
-      rt.roomWaiters.set(exchangeId, { sessionId, botId: member.id, roomId: room.id, resolve: finish, fail: failure => finish({ failure }), touch, work, say, approval: () => finish({ approval: true }) })
+      rt.roomWaiters.set(exchangeId, { sessionId, botId: member.id, roomId: room.id, resolve: finish, fail: failure => finish({ failure }), touch: () => { stirred = true; touch() }, work, say, approval: () => finish({ approval: true }) })
       signal.addEventListener('abort', () => finish(null), { once: true })
     })
     try {

@@ -31,5 +31,7 @@ services:
       - ./docker/workspace:/workspace
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    # Reaps the processes Bots' tools leave behind; without it they pile up as zombies.
+    init: true
     restart: unless-stopped
     stop_grace_period: 15s

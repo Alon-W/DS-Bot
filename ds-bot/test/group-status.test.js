@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import { createRuntime } from '../index.js'
 import { fakeContext } from './fake-ctx.js'
-import { ROOM_REPLY_TIMEOUT_MS } from '../src/host/constants.js'
+import { ROOM_CLI_TURN_MAX_MS, ROOM_REPLY_TIMEOUT_MS } from '../src/host/constants.js'
 
 let rt
 
@@ -310,4 +310,21 @@ test('an approval asked inside a PTC program shows what that call does', async (
   const [approval] = value.work.approvals
   assert.deepEqual(approval.detail, { text: 'Copy the doc', code: 'Copy-Item a.md E:/docs' })
   assert.equal(value.work.bots.b.tool, 'pwsh')
+})
+
+test('a CLI member that went quiet mid-turn keeps its place until the CLI cap, then is missed', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'], now: Date.now() })
+  const host = await start()
+  t.after(host.stop)
+  host.rt.botOf('b').model = 'local-claude-code/default'
+  const result = await openTurn(t, host)
+  host.emit('gb', 'tool/call', { callId: 'k1', name: 'list_bots', arguments: '{}' })
+  t.mock.timers.tick(ROOM_REPLY_TIMEOUT_MS * 3)
+  // Long enough for a missed answer to have landed, had there been one.
+  for (let i = 0; i < 50; i++) await new Promise(resolve => setImmediate(resolve))
+  assert.equal(result(), undefined)
+
+  t.mock.timers.tick(ROOM_CLI_TURN_MAX_MS)
+  await settle(() => result() !== undefined)
+  assert.deepEqual(result().replies.map(reply => [reply.kind, reply.name]), [['missed', 'Writer']])
 })
