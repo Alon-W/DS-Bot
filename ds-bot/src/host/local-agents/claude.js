@@ -49,7 +49,7 @@ export class ClaudeEngine {
   }
 }
 
-class ClaudeSession {
+export class ClaudeSession {
   constructor(engine, dshSessionId) {
     this.engine = engine
     this.dshSessionId = dshSessionId
@@ -186,7 +186,7 @@ class ClaudeSession {
             type: 'permission', id: event.request_id,
             reply: (optionId) => this.write({
               type: 'control_response',
-              response: { subtype: 'success', request_id: event.request_id, response: optionId === 'allow' ? { behavior: 'allow', updatedInput: request.input ?? {} } : { behavior: 'deny' } },
+              response: { subtype: 'success', request_id: event.request_id, response: optionId === 'allow' ? { behavior: 'allow', updatedInput: request.input ?? {} } : { behavior: 'deny', message: 'Denied by DS Bot' } },
             }),
             action: `Run ${tool}`,
             detail: JSON.stringify(request.input ?? {}).slice(0, 4_000),

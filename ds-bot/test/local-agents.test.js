@@ -9,7 +9,7 @@ import { LocalAgentAdapter } from '../src/host/local-agents/adapter.js'
 import { AcpEngine } from '../src/host/local-agents/acp.js'
 import { CodexEngine } from '../src/host/local-agents/codex.js'
 import { JsonRpcPeer, wireProcess } from '../src/host/local-agents/jsonrpc.js'
-import { ClaudeEngine } from '../src/host/local-agents/claude.js'
+import { ClaudeEngine, ClaudeSession } from '../src/host/local-agents/claude.js'
 import { LoopbackMcp, flattenSchema } from '../src/host/local-agents/mcp.js'
 import { cleanEnv } from '../src/host/local-agents/discover.js'
 import { validateCustom, isLocalAgentRoute, cliMode, acpMode } from '../src/host/local-agents/engines.js'
@@ -857,4 +857,15 @@ test('an open-ended request outlives the default deadline', async () => {
   assert.equal(await settled, 'timeout', 'a positive timeout still fires')
   peer.handleLine(JSON.stringify({ jsonrpc: '2.0', id: 1, result: { stopReason: 'end_turn' } }))
   assert.deepEqual(await open, { stopReason: 'end_turn' }, 'a 0 timeout never expires')
+})
+
+test('a denied Claude permission carries the message Claude Code requires', () => {
+  const written = []
+  const events = []
+  const session = Object.create(ClaudeSession.prototype)
+  session.write = message => written.push(message)
+  session.emit = event => events.push(event)
+  session.onLine(JSON.stringify({ type: 'control_request', request_id: 'r1', request: { subtype: 'can_use_tool', tool_name: 'Bash', input: {} } }))
+  events[0].reply('deny')
+  assert.deepEqual(written[0].response.response, { behavior: 'deny', message: 'Denied by DS Bot' })
 })

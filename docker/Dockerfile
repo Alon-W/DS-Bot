@@ -46,6 +46,8 @@ RUN npm install -g @anthropic-ai/claude-code@2.1.319
 RUN npm install -g @openai/codex@0.167.0
 RUN npm install -g opencode-ai@1.19.5
 ENV DISABLE_AUTOUPDATER=1 OPENCODE_DISABLE_AUTOUPDATE=1
+# agent-bus is private: docker/agent-bus/ is a local, git-ignored copy that must exist at build time.
+COPY docker/agent-bus/ /opt/agent-bus/
 COPY --chmod=0755 docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY docker/docker.patch.yml /opt/ds-bot/docker.patch.yml
 

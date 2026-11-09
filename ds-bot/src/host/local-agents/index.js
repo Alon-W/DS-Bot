@@ -98,7 +98,7 @@ export function install(rt) {
     presetFor: (sessionId) => {
       const bot = rt.botOf(rt.selfOf(sessionId))
       const room = rt.roomOf(rt.groupOwners.get(sessionId)?.roomId)
-      return room?.permission ?? bot?.permission ?? 'workspace-write'
+      return room?.permission ?? bot?.permission ?? process.env.DSH_PERMISSION_MODE ?? 'workspace-write'
     },
     cwdFor: async (sessionId) => {
       try {
@@ -110,9 +110,9 @@ export function install(rt) {
     },
     probeCwd: () => mkdtempSync(join(tmpdir(), 'dsb-probe-')),
     toolsFor: (options) => {
-      // Only DS Bot's own team tools cross the bridge; the CLI keeps its own.
+      // Only DS Bot's own team tools and the agent-bus capability cross the bridge; the CLI keeps its own.
       const names = new Set([...rt.teamTools.map(def => def.name), 'approve_agent_action'])
-      return (options.tools ?? []).filter(tool => names.has(tool.name))
+      return (options.tools ?? []).filter(tool => names.has(tool.name) || tool.name.startsWith('mcp__agentbus__'))
     },
   })
 
