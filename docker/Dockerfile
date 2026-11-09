@@ -45,7 +45,17 @@ RUN ln -s /opt/ds-bot/ds-bot.tgz /tmp/ds-bot.tgz
 RUN npm install -g @anthropic-ai/claude-code@2.1.319
 RUN npm install -g @openai/codex@0.167.0
 RUN npm install -g opencode-ai@1.19.5
-ENV DISABLE_AUTOUPDATER=1 OPENCODE_DISABLE_AUTOUPDATE=1
+RUN set -e; \
+    case "$(dpkg --print-architecture)" in \
+      arm64) p=linux-arm/cli_linux_arm64; s=c2fac818b3c1bb224079df03a714ccba99728b6a3a41d86d247ab2feb8582a43840c5032f1c2b75e72667623d5503e7ffda2712c4f37b6ee19f99c3fcfb25bae ;; \
+      amd64) p=linux-x64/cli_linux_x64; s=e363e1b17daaac2589f18e6973429c039fd5a5e5c15e9c0852fa349836f3992b10fe84732bc8d8c8208e149f0304f15aba9dec696d12efeed03917492c0580eb ;; \
+    esac; \
+    curl -fsSL -o /tmp/agy.tgz "https://storage.googleapis.com/antigravity-public/antigravity-cli/1.5.3-6604829099950080/$p.tar.gz"; \
+    echo "$s  /tmp/agy.tgz" | sha512sum -c -; \
+    tar -xzf /tmp/agy.tgz -C /usr/local/bin antigravity; \
+    mv /usr/local/bin/antigravity /usr/local/bin/agy; \
+    rm /tmp/agy.tgz
+ENV DISABLE_AUTOUPDATER=1 OPENCODE_DISABLE_AUTOUPDATE=1 AGY_CLI_DISABLE_AUTO_UPDATE=1
 # agent-bus is private: docker/agent-bus/ is a local, git-ignored copy that must exist at build time.
 COPY docker/agent-bus/ /opt/agent-bus/
 COPY --chmod=0755 docker/entrypoint.sh /usr/local/bin/entrypoint.sh

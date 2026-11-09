@@ -30,7 +30,7 @@ volumes:
 sudo docker compose up -d --build
 ```
 
-Sign in each CLI yourself with `sudo docker compose exec -u node ds-bot <cli>`.
+Sign in each CLI yourself with `sudo docker compose exec -u node ds-bot <cli>`. For Antigravity, use `agy acp --login`.
 
 After a rebuild that changes `ds-bot/`, copy the plugin over the persisted profile and
 restart. `dsh plugin add` fails on a pnpm store mismatch.

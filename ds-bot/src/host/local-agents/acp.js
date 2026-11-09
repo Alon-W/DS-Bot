@@ -1,6 +1,7 @@
 // The Agent Client Protocol engine: one child process per route, ACP over
 // stdio. A process multiplexes sessions: each DS Bot Session maps to one ACP
 // session, created or resumed with our loopback MCP server attached.
+import { fileURLToPath } from 'node:url'
 import { JsonRpcPeer, wireProcess, EventQueue } from './jsonrpc.js'
 import { cleanEnv, spawnAgent } from './discover.js'
 import { acpMode } from './engines.js'
@@ -140,8 +141,7 @@ export class AcpEngine {
   async open(dshSessionId, { cwd, mcp, resumeId, preset, model }) {
     const peer = await this.ensure()
     const session = this.sessionFor(dshSessionId)
-    const mcpServers = serversFor(mcp)
-    if (mcp !== undefined && this.caps.mcpHttp === false) throw Object.assign(new Error(`${this.engine.name} cannot use HTTP MCP servers; the team tools cannot reach it`), { code: 'NOT_SUPPORTED' })
+    const mcpServers = serversFor(mcp, this.caps)
     const params = { cwd, mcpServers }
     let reply
     if (resumeId !== undefined) {
@@ -224,14 +224,20 @@ export class AcpEngine {
   // Models the agent advertises on a probe session (configOptions 'model').
   async listModels({ cwd, mcp }) {
     const peer = await this.ensure()
-    const probe = await peer.request('session/new', { cwd, mcpServers: serversFor(mcp) }, { timeout: 60_000 })
+    const probe = await peer.request('session/new', { cwd, mcpServers: serversFor(mcp, this.caps) }, { timeout: 60_000 })
     this.remember(probe)
     const option = configOptionsOf(probe?.configOptions ?? [], 'model')
     return (option?.options ?? []).map(entry => ({ id: String(entry.id ?? entry.value ?? entry.name), name: String(entry.name ?? entry.id ?? entry.value) }))
   }
 }
 
-const serversFor = mcp => (mcp === undefined ? [] : [{ type: 'http', name: MCP_SERVER, url: mcp.url, headers: [{ name: 'Authorization', value: `Bearer ${mcp.token}` }] }])
+const STDIO_RELAY = fileURLToPath(new URL('./stdio-relay.js', import.meta.url))
+// HTTP when the agent says it takes it; stdio is the one transport every ACP agent must.
+const serversFor = (mcp, caps) => {
+  if (mcp === undefined) return []
+  if (caps.mcpHttp !== false) return [{ type: 'http', name: MCP_SERVER, url: mcp.url, headers: [{ name: 'Authorization', value: `Bearer ${mcp.token}` }] }]
+  return [{ name: MCP_SERVER, command: process.execPath, args: [STDIO_RELAY], env: [{ name: 'DSBOT_MCP_URL', value: mcp.url }, { name: 'DSBOT_MCP_TOKEN', value: mcp.token }, { name: 'ELECTRON_RUN_AS_NODE', value: '1' }] }]
+}
 // ACP has no field for the MCP server of a call, so each agent says it its own way:
 // Cursor in the call's input, Devin in the permission rule the request names.
 const ownToolCall = call => call?.rawInput?.providerIdentifier === MCP_SERVER

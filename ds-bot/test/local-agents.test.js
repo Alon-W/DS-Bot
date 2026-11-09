@@ -869,3 +869,31 @@ test('a denied Claude permission carries the message Claude Code requires', () =
   events[0].reply('deny')
   assert.deepEqual(written[0].response.response, { behavior: 'deny', message: 'Denied by DS Bot' })
 })
+
+test('the stdio relay carries MCP to the loopback server, tool calls included', async () => {
+  const mcp = new LoopbackMcp(() => [], async ({ name }) => ({ text: `ran ${name}` }))
+  await mcp.listen()
+  const relay = fileURLToPath(new URL('../src/host/local-agents/stdio-relay.js', import.meta.url))
+  const child = spawn(process.execPath, [relay], { env: { ...process.env, DSBOT_MCP_URL: mcp.url, DSBOT_MCP_TOKEN: mcp.token }, stdio: ['pipe', 'pipe', 'inherit'] })
+  const replies = []
+  let waiting
+  let rest = ''
+  child.stdout.setEncoding('utf8').on('data', (chunk) => {
+    rest += chunk
+    const lines = rest.split('\n')
+    rest = lines.pop()
+    for (const line of lines) { replies.push(JSON.parse(line)); waiting?.() }
+  })
+  const ask = async (message) => {
+    child.stdin.write(`${JSON.stringify(message)}\n`)
+    while (!replies.some(reply => reply.id === message.id)) await new Promise((resolve) => { waiting = resolve })
+    return replies.find(reply => reply.id === message.id)
+  }
+  try {
+    assert.ok((await ask({ jsonrpc: '2.0', id: 1, method: 'initialize', params: {} })).result.capabilities)
+    assert.equal((await ask({ jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'go', arguments: {} } })).result.content[0].text, 'ran go')
+  } finally {
+    child.kill()
+    mcp.close()
+  }
+})
