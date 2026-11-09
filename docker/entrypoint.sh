@@ -75,5 +75,8 @@ if [ -n "${DSH_TRUSTED_HOST:-}" ]; then
   IFS=$old_ifs
 fi
 export HOME=/home/node
+# The bus server linked machines talk to. It prints its token at start, so keep it out of the logs.
+# shortcut: not restarted if it crashes until the container restarts, add a supervisor if that happens.
+gosu node python3 /opt/agent-bus/phone_remote.py --port 8787 >/dev/null 2>&1 &
 cd /workspace
 exec gosu node "$@"

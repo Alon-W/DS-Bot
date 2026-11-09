@@ -1,3 +1,4 @@
+import { busName } from './agent-bus.js'
 // Prompt: one section whose text depends only on the rendering Session's own Bot
 // record, so the prefix stays byte-stable across turns and roster changes.
 
@@ -49,6 +50,7 @@ export function install(rt) {
         '# Your identity',
         `You are ${bot.name}, a Bot on the user's team in DS Bot.${bot.role ? ` Your role: ${bot.role}.` : ''}`,
         bot.instructions ? `\n${bot.instructions}` : '',
+        bot.capabilities?.includes('agentbus') ? `\nYour agent-bus name is ${busName(bot.id)}. Always pass it as "from" with agentbus_send. Answer a bus message by sending to the address in its from attribute.` : '',
         '',
         rt.isMain(self) ? `${MAIN_RULES}\n\n${TEAM_RULES}` : TEAM_RULES,
       ].join('\n')
