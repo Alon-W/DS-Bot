@@ -57,6 +57,19 @@ sudo tailscale serve --bg --tcp 13080 tcp://127.0.0.1:13080
 sudo tailscale serve --bg --tcp 8787 tcp://127.0.0.1:8787
 ```
 
+## Logging in from your own devices
+
+`docker/tailnet-login.py` logs a logged-in Tailscale user in to DS Bot, with no token to
+copy. Run it as a service on the host, as a user with passwordless `sudo docker`, then:
+
+```sh
+sudo tailscale serve --bg --https=443 http://127.0.0.1:13080
+sudo tailscale serve --bg --https=443 --set-path=/auto-login http://127.0.0.1:13081
+```
+
+Bookmark `https://<host>.<tailnet>.ts.net/auto-login`. Tagged machines do not get the
+user header that this relies on.
+
 ## Linking machines
 
 Do not use `--machine`: it needs the full token and announces a LAN address. Write
