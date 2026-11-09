@@ -41,6 +41,9 @@ COPY --from=build /opt/dsh-template /opt/dsh-template
 COPY --from=build /opt/ds-bot/ds-bot.tgz /opt/ds-bot/ds-bot.tgz
 # Persisted profiles from earlier images still refer to the old archive path.
 RUN ln -s /opt/ds-bot/ds-bot.tgz /tmp/ds-bot.tgz
+# Agent CLIs that run the Bots. Pinned: update by changing the version and rebuilding.
+RUN npm install -g @anthropic-ai/claude-code@2.1.319
+ENV DISABLE_AUTOUPDATER=1
 COPY --chmod=0755 docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY docker/docker.patch.yml /opt/ds-bot/docker.patch.yml
 
