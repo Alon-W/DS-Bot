@@ -56,6 +56,7 @@ import { USER_MESSAGE_CSS, UserMessageCell, canDrawUserMessages } from './user-m
 import { QueueDock, QUEUE_CSS } from './queue-dock.js'
 import { noticeApprovals } from './approval-notices.js'
 import { listedOpener } from './open-listed.js'
+import { createPcRemote } from './pc-remote.js'
 
 export const inject = ['sessions', 'uiWorkspace', 'uiConversation', 'slots', 'theme', 'layout']
 
@@ -68,6 +69,34 @@ export function apply(ctx) {
   let savedPrefs = {}
   try { savedPrefs = JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}') ?? {} } catch { savedPrefs = {} }
   const roster = createSource({ ...EMPTY_ROSTER, prefs: savedPrefs })
+  const pcSessions = createSource([])
+  ctx.effect(() => {
+    let stopped = false
+    let running = false
+    let timer
+    let remotesKey = ''
+    const poll = async () => {
+      if (stopped || running || document.hidden) return
+      running = true
+      const remotes = roster.getSnapshot().pcRemotes ?? []
+      const values = await Promise.all(remotes.map(async remote => {
+        try { return { ...remote, ...await createPcRemote(remote).state() } } catch { return { ...remote, error: true } }
+      }))
+      running = false
+      if (!stopped) {
+        pcSessions.set(values)
+        timer = setTimeout(poll, 5000)
+      }
+    }
+    const wake = () => { if (!document.hidden) { clearTimeout(timer); void poll() } }
+    const unsubscribe = roster.subscribe(() => {
+      const key = JSON.stringify(roster.getSnapshot().pcRemotes ?? [])
+      if (key !== remotesKey) { remotesKey = key; wake() }
+    })
+    document.addEventListener('visibilitychange', wake)
+    void poll()
+    return () => { stopped = true; clearTimeout(timer); unsubscribe(); document.removeEventListener('visibilitychange', wake) }
+  }, 'ds-bot: PC sessions')
   const unreadStore = sharedMap(STORAGE.unread)
   const reactionStore = sharedMap(STORAGE.reactions)
   // When each conversation was last left; a visit compares new turns against it.
@@ -818,7 +847,8 @@ export function apply(ctx) {
       else if (kind === 'letgo') void actions.computerAllowForeground(botId)
     })
   }
-  const face = () => ({ actions, hooks: { roster, ui, activity, work, memoryNews, registry, turnClock, live, computer, cards, heldCards, browserPages, browserTabs, browserHolds, surface, update, frame, sidebarPref, settingsShellHeld } })
+  actions.openPcSession = (machine, name) => ui.set(state => ({ ...state, details: `pc:${machine}:${name}`, pcMachine: machine, pcName: name, view: 'pc', panelYield: true }))
+  const face = () => ({ actions, hooks: { roster, ui, pcSessions, activity, work, memoryNews, registry, turnClock, live, computer, cards, heldCards, browserPages, browserTabs, browserHolds, surface, update, frame, sidebarPref, settingsShellHeld } })
   // DS Bot holds the settings seat in every mode, Agent mode included: the bundle patch
   // turns DSH's own shell off, and this one draws DSH's settings pages in DS Bot's dialog.
   ctx.effect(() => {

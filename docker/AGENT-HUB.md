@@ -20,11 +20,16 @@ services:
       - "127.0.0.1:8787:8787"
     environment:
       DSH_TRUSTED_HOST: "localhost,127.0.0.1,<tailscale-ip>,<host>,<host>.<tailnet>.ts.net"
+      DSBOT_PC_REMOTES: "other=https://<pc>.<tailnet>.ts.net"
     volumes:
       - node-home:/home/node
 volumes:
   node-home:
 ```
+
+`DSBOT_PC_REMOTES` is optional. Its comma-separated machine names must match the
+names on the bus; each URL is the PC's HTTPS Tailscale proxy address. The browser
+connects directly to the proxy, which must allow the DS Bot origin.
 
 ```sh
 sudo docker compose up -d --build

@@ -17,6 +17,7 @@ import { showsDshRow } from './dsh-offer.js'
 import { quietly } from './diagnostics.js'
 import { frameLayout, dragColumn, RAIL_WIDTH, FALLBACK_SIDEBAR_WIDTH, userSidebarToggle } from './frame-layout.js'
 import { chatRoom, dshCollapsed } from './frame-watch.js'
+import { PcSessions } from './pc-sessions.js'
 
 // -------------------------------------------------------------------------
 // Sidebar
@@ -487,6 +488,7 @@ export function TeamSidebar(props) {
   const { wide, useRoster, useUi, useSessions, actions } = props
   const listRef = useRef(null)
   const roster = useRoster(value => value)
+  const pcRemotes = props.usePcSessions ? props.usePcSessions(value => value) : []
   const markedUnread = useUi(value => value.unread)
   const leftDrawer = useUi(value => value.leftDrawer === true)
   const details = useUi(value => value.details ?? null)
@@ -834,7 +836,8 @@ export function TeamSidebar(props) {
         onDragStart,
         onDragOverSec,
         onDropSec,
-      }))),
+      })),
+      h(PcSessions, { remotes: pcRemotes, wide: wideContent, actions })),
     foot)
   return h(Fragment, null,
     h(TitleToggle, { hidden: mode === 'hidden', onToggle }),

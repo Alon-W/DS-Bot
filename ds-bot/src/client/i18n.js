@@ -5,6 +5,14 @@
 export const NAMESPACE = 'ds-bot'
 
 const ZH = {
+  'PC sessions': '电脑会话',
+  'PC unreachable': '无法连接电脑',
+  'Show all ({count})': '显示全部（{count}）',
+  'PC session': '电脑会话',
+  'Show earlier': '显示更早消息',
+  'Already answered': '已回答',
+  'Send failed': '发送失败',
+  'Always allow': '始终允许',
   // Shared
   'Main Bot': '主 Bot',
   Working: '进行中',
