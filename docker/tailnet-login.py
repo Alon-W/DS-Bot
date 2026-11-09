@@ -4,6 +4,7 @@
 tailscale serve sends /auto-login here and sets Tailscale-User-Login for a logged-in
 user, never for a tagged machine. Listens on loopback, out of the container's reach.
 """
+import json
 import re
 import subprocess
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -28,11 +29,16 @@ class Login(BaseHTTPRequestHandler):
         token = token_from(log.stdout + log.stderr)
         if token is None:
             return self.send_error(503)
-        self.send_response(302)
-        self.send_header("Location", "/?token=" + token)
+        # A page, not a redirect: DS Bot's cookie is SameSite=Strict, and a browser withholds
+        # it at the end of a redirect chain that started in another app.
+        body = ("<!doctype html><script>location.replace(%s)</script>" % json.dumps("/?token=" + token)).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
         self.send_header("Referrer-Policy", "no-referrer")
         self.end_headers()
+        self.wfile.write(body)
 
 
 if __name__ == "__main__":
