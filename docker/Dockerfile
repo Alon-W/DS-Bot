@@ -55,7 +55,7 @@ RUN set -e; \
     tar -xzf /tmp/agy.tgz -C /usr/local/bin antigravity; \
     mv /usr/local/bin/antigravity /usr/local/bin/agy; \
     rm /tmp/agy.tgz
-ENV DISABLE_AUTOUPDATER=1 OPENCODE_DISABLE_AUTOUPDATE=1 AGY_CLI_DISABLE_AUTO_UPDATE=1
+ENV DISABLE_AUTOUPDATER=1 OPENCODE_DISABLE_AUTOUPDATE=1 AGY_CLI_DISABLE_AUTO_UPDATE=1 AGENT_BUS_MAILBOX_ONLY=1
 # agent-bus is private: docker/agent-bus/ is a local, git-ignored copy that must exist at build time.
 COPY docker/agent-bus/ /opt/agent-bus/
 COPY --chmod=0755 docker/entrypoint.sh /usr/local/bin/entrypoint.sh

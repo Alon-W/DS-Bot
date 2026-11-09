@@ -22,6 +22,7 @@ export const AGENT_BADGES = {
   'cline': ['CL', 'cyan'],
   'qwen-code': ['QW', 'cobalt'],
   'goose': ['GS', 'brown'],
+  'antigravity': ['AG', 'cobalt'],
 }
 const CUSTOM = ['AC', 'rose']
 

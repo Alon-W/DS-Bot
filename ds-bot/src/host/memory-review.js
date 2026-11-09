@@ -302,7 +302,8 @@ export function installReview(rt, memory) {
       // is said, and the place moves on — the same lines are not read again. A
       // change that is not well formed is set aside and said, one by one.
       if (parsed === undefined) {
-        rt.warn('ds-bot: memory review of %s got no list of changes from the model: %s', name, clip(reply.replace(/\s+/g, ' '), 120))
+        // A CLI says in words that it found nothing to keep, every time; only a model API's miss is news.
+        if (rt.isLocalAgentRef?.(keeper.model ?? keeper.appliedModel) !== true) rt.warn('ds-bot: memory review of %s got no list of changes from the model: %s', name, clip(reply.replace(/\s+/g, ' '), 120))
       } else {
         const { changes, leftOut } = parsed
         for (const change of leftOut) {
