@@ -15371,7 +15371,9 @@ var PC_SESSIONS_CSS = `
 .bt-pc-row[data-state=failed] .bt-pc-state{background:var(--bt-danger)}
 .bt-pc-row[data-state=idle]{color:var(--bt-ink-3)}
 .bt-pc-ask{color:var(--bt-ink-2)}
-.bt-pc-badge{flex:none;display:inline-flex;padding:2px;border-radius:6px;background:#fff;box-shadow:0 0 0 .5px var(--bt-line)}
+.bt-pc-badge{flex:none;display:inline-flex;padding:2px;border-radius:6px;background:var(--bt-card);box-shadow:0 0 0 .5px var(--bt-line)}
+/* The CLI logos are drawn for a light ground, so the tile stays light in the dark theme too. */
+body[data-ds-dark-theme] .bt-pc-badge{background:var(--bt-accent)}
 .bt-pc-more .bt-agent-sub-title{color:var(--bt-accent)}
 .bt-pc-panel{display:flex;flex-direction:column;--bt-panel-w:min(420px,100vw);width:var(--bt-panel-w)}
 @media (max-width:640px){.bt-pc-panel{left:0;width:100vw;border-left:0}}
