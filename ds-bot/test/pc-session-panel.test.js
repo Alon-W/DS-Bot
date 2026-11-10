@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { build } from 'esbuild'
 import { runInNewContext } from 'node:vm'
 
-const { outputFiles } = await build({ entryPoints: ['src/client/pc-session-panel.js'], bundle: true, format: 'cjs', platform: 'browser', write: false, external: ['react'] })
+const { outputFiles } = await build({ entryPoints: ['src/client/pc-session-panel.js'], bundle: true, format: 'cjs', platform: 'browser', write: false, external: ['react', '@deepseek-ai/*'] })
 const module = { exports: {} }
 const react = { createElement: (type, props, ...children) => ({ type, props, children }), useEffect() {}, useState: value => [value, () => {}] }
 runInNewContext(outputFiles[0].text, { module, exports: module.exports, require: () => react })

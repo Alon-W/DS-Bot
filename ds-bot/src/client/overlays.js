@@ -63,7 +63,7 @@ export function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useA
   const [menu, menuLeaving] = useLinger(ui.menu, MENU_EXIT_MS)
   return h(Fragment, null,
     pane ? createPortal(pane.view === 'pc'
-      ? h(PcSessionPanel, { key: pane.id, machine: pane.pcMachine, name: pane.pcName, url: (roster.pcRemotes ?? []).find(remote => remote.machine === pane.pcMachine)?.url, close: actions.closePanel })
+      ? h(PcSessionPanel, { key: pane.id, machine: pane.pcMachine, name: pane.pcName, url: (roster.pcRemotes ?? []).find(remote => remote.machine === pane.pcMachine)?.url, close: actions.closePanel, actions })
       : h(BotPanel, { pane, leaving: shown === null, room: layout.room, overlay: layout.panel === 'overlay', roster, actions, useSessions, useSessionStatus, useActivity, useWork, useBrowserTabs, useBrowserPages, useBrowserHolds }), document.body) : null,
     ui.newChat ? createPortal(h(NewChat, { key: `${ui.newChat}:${ui.newChatSection ?? ''}`, mode: ui.newChat, sectionId: ui.newChatSection ?? null, paneLeft: layout.column, roster, actions }), document.body) : null,
     ui.palette ? createPortal(h(CommandPalette, { key: ui.palette.token, start: ui.palette.query, token: ui.palette.token, roster, actions, useSessions }), document.body) : null,

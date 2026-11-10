@@ -50,6 +50,14 @@ var ZH = {
   "Already answered": "已回答",
   "Send failed": "发送失败",
   "Always allow": "始终允许",
+  "Needs your approval": "需要你批准",
+  "The session is asking": "会话在提问",
+  "Message this session": "给这个会话发消息",
+  "All PC sessions": "全部电脑会话",
+  "Needs you": "需要你",
+  "{count} sessions": "{count} 个会话",
+  "{count} working": "{count} 个进行中",
+  "{count} need you": "{count} 个需要你",
   // Shared
   "Main Bot": "主 Bot",
   Working: "进行中",
@@ -15271,34 +15279,126 @@ function sessionRows(peers, pending, showAll) {
   rows2.sort((a, b) => priority[a.state] - priority[b.state]);
   return showAll ? rows2 : rows2.filter((row) => row.state !== "idle").slice(0, 12);
 }
-function Machine({ remote, wide, actions }) {
-  const [showAll, setShowAll] = (0, import_react34.useState)(false);
-  const peers = remote.peers ?? [];
-  const rows2 = sessionRows(peers, remote.pending ?? {}, showAll);
+function summaryOf(rows2) {
+  const asking = rows2.filter((row) => row.state === "asking").length;
+  const busy = rows2.filter((row) => row.state === "busy").length;
+  const parts = [asking ? t("{count} need you", { count: asking }) : "", busy ? t("{count} working", { count: busy }) : ""].filter(Boolean);
+  return parts.length ? parts.join(" · ") : t("{count} sessions", { count: rows2.length });
+}
+var STATE_LABEL = { asking: "Needs you", busy: "Working", failed: "Failed", idle: "Idle" };
+var engineOf = (tool) => `local-${{ claude: "claude-code", codex: "codex-cli" }[tool] ?? tool}`;
+function SessionRow({ row, onOpen, index = 0 }) {
   return (0, import_react34.createElement)(
-    "section",
+    "button",
+    {
+      type: "button",
+      className: "bt-agent-sub-row bt-pc-row",
+      "data-state": row.state,
+      style: { "--i": index },
+      "aria-label": `${row.label}, ${t(STATE_LABEL[row.state])}`,
+      title: row.label,
+      onClick: onOpen
+    },
+    (0, import_react34.createElement)("span", { className: "bt-pc-state", "aria-hidden": true }),
+    (0, import_react34.createElement)("span", { className: "bt-pc-badge" }, (0, import_react34.createElement)(AgentBadge, { engine: engineOf(row.tool) })),
+    (0, import_react34.createElement)("span", { className: "bt-agent-sub-title" }, row.label),
+    row.state === "asking" ? (0, import_react34.createElement)("span", { className: "bt-agent-sub-time bt-pc-ask" }, t("Needs you")) : null
+  );
+}
+function SessionList({ peers, pending, onOpen }) {
+  const [showAll, setShowAll] = (0, import_react34.useState)(false);
+  const all = sessionRows(peers, pending, true);
+  const shown = showAll ? all : sessionRows(peers, pending, false);
+  return (0, import_react34.createElement)(
+    import_react34.Fragment,
     null,
-    (0, import_react34.createElement)("div", { className: "bt-section-title" }, wide ? `${t("PC sessions")} · ${remote.machine}` : remote.machine),
-    remote.error ? (0, import_react34.createElement)("div", { className: "bt-hint", role: "status" }, t("PC unreachable")) : rows2.map((row) => (0, import_react34.createElement)(
+    shown.map((row, index) => (0, import_react34.createElement)(SessionRow, { key: row.name, row, index: index + 1, onOpen: () => onOpen(row.name) })),
+    all.length > shown.length ? (0, import_react34.createElement)(
+      "button",
+      { type: "button", className: "bt-agent-sub-row bt-pc-more", onClick: () => setShowAll(true) },
+      (0, import_react34.createElement)("span", { className: "bt-agent-sub-title" }, t("Show all ({count})", { count: all.length }))
+    ) : null
+  );
+}
+function Machine({ remote, wide, actions }) {
+  const [open, setOpen] = (0, import_react34.useState)(false);
+  const peers = remote.peers ?? [];
+  const pending = remote.pending ?? {};
+  const all = sessionRows(peers, pending, true);
+  const asking = all.some((row) => row.state === "asking");
+  const busy = all.some((row) => row.state === "busy");
+  const preview = remote.error ? t("PC unreachable") : summaryOf(all);
+  return (0, import_react34.createElement)(
+    "div",
+    { className: "bt-agent" },
+    (0, import_react34.createElement)(
       "button",
       {
-        key: row.name,
         type: "button",
         className: "bt-row",
-        title: row.label,
-        onClick: () => actions.openPcSession(remote.machine, row.name)
+        "aria-label": [t("PC sessions"), remote.machine, preview].join(", "),
+        "aria-expanded": wide ? open : void 0,
+        title: wide ? void 0 : t("PC sessions"),
+        onClick: () => wide ? setOpen((value) => !value) : actions.openPcSession(remote.machine, null)
       },
-      (0, import_react34.createElement)("span", { "aria-hidden": true }, row.state === "asking" ? "●" : row.state === "busy" ? "◉" : row.state === "failed" ? "!" : "○"),
-      (0, import_react34.createElement)(AgentBadge, { engine: `local-${{ claude: "claude-code", codex: "codex-cli" }[row.tool] ?? row.tool}` }),
-      wide ? (0, import_react34.createElement)("span", { className: "bt-row-title" }, row.label) : null
-    )),
-    !remote.error && peers.length > rows2.length ? (0, import_react34.createElement)("button", { type: "button", className: "bt-more", onClick: () => setShowAll(true) }, t("Show all ({count})", { count: peers.length })) : null,
-    !remote.error && showAll ? (0, import_react34.createElement)("button", { type: "button", className: "bt-more", onClick: () => setShowAll(false) }, t("Show less")) : null
+      (0, import_react34.createElement)("span", { className: `bt-agent-ava${busy ? " bt-run" : ""}` }, (0, import_react34.createElement)(MonitorIcon)),
+      wide ? (0, import_react34.createElement)(
+        "span",
+        { className: "bt-row-body" },
+        (0, import_react34.createElement)("span", { className: "bt-row-name" }, t("PC sessions")),
+        (0, import_react34.createElement)("span", { className: "bt-row-preview" }, preview)
+      ) : null,
+      !wide && asking ? (0, import_react34.createElement)("span", { className: "bt-dot bt-dot-wait", "aria-hidden": true }) : null
+    ),
+    wide ? (0, import_react34.createElement)(
+      "div",
+      { className: "bt-agent-sub", "data-open": open || void 0 },
+      (0, import_react34.createElement)(
+        "div",
+        { className: "bt-agent-sub-in" },
+        remote.error ? null : (0, import_react34.createElement)(SessionList, { peers, pending, onOpen: (name) => actions.openPcSession(remote.machine, name) })
+      )
+    ) : null
   );
 }
 function PcSessions({ remotes, wide, actions }) {
   return (remotes ?? []).map((remote) => (0, import_react34.createElement)(Machine, { key: remote.machine, remote, wide, actions }));
 }
+var PC_SESSIONS_CSS = `
+.bt-pc-row .bt-pc-state{flex:none;width:7px;height:7px;border-radius:50%;background:var(--bt-line-2)}
+.bt-pc-row[data-state=busy] .bt-pc-state{background:var(--bt-accent)}
+.bt-pc-row[data-state=asking] .bt-pc-state{background:var(--bt-star)}
+.bt-pc-row[data-state=failed] .bt-pc-state{background:var(--bt-danger)}
+.bt-pc-row[data-state=idle]{color:var(--bt-ink-3)}
+.bt-pc-ask{color:var(--bt-ink-2)}
+.bt-pc-badge{flex:none;display:inline-flex;padding:2px;border-radius:6px;background:#fff;box-shadow:0 0 0 .5px var(--bt-line)}
+.bt-pc-more .bt-agent-sub-title{color:var(--bt-accent)}
+.bt-pc-panel{display:flex;flex-direction:column;--bt-panel-w:min(420px,100vw);width:var(--bt-panel-w)}
+@media (max-width:640px){.bt-pc-panel{left:0;width:100vw;border-left:0}}
+.bt-pc-head{display:flex;align-items:center;gap:4px;min-height:52px;padding:8px 8px 8px 12px;border-bottom:.5px solid var(--bt-line)}
+.bt-pc-title{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.bt-pc-title b{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bt-pc-title span{font-size:12px;color:var(--bt-ink-3)}
+.bt-pc-head .bt-icon-btn{width:36px;height:36px;flex:none}
+.bt-pc-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:14px;display:flex;flex-direction:column;gap:12px}
+.bt-pc-list{flex:1;min-height:0;overflow-y:auto;padding:8px}
+.bt-pc-list .bt-agent-sub-row{padding:11px 12px;font-size:14px}
+.bt-pc-msg{max-width:88%;min-width:0;font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+.bt-pc-msg pre{overflow-x:auto;max-width:100%}
+.bt-pc-text{white-space:pre-wrap}
+.bt-pc-in{align-self:flex-start}
+.bt-pc-out{align-self:flex-end;padding:8px 12px;border-radius:16px;background:var(--bt-user);color:var(--bt-user-ink)}
+.bt-pc-earlier{align-self:center;border:0;background:none;color:var(--bt-accent);font:inherit;font-size:13px;padding:6px 10px;cursor:pointer}
+.bt-pc-note{margin:10px 14px 0;padding:8px 12px;border-radius:10px;background:var(--bt-hover);font-size:13px;color:var(--bt-ink-2)}
+.bt-pc-prompt{margin:0 14px 10px;padding:12px;border:.5px solid var(--bt-line-2);border-radius:12px;background:var(--bt-card);display:flex;flex-direction:column;gap:10px;font-size:13px}
+.bt-pc-prompt-title{font-weight:600}
+.bt-pc-choices{display:flex;flex-wrap:wrap;gap:8px}
+.bt-pc-choice{min-height:36px;padding:0 14px;border-radius:999px;border:.5px solid var(--bt-line-2);background:var(--bt-main);color:var(--bt-ink);font:inherit;font-size:14px;cursor:pointer}
+.bt-pc-choice:disabled{opacity:.5;cursor:default}
+.bt-pc-compose{display:flex;gap:8px;align-items:flex-end;padding:10px 14px;border-top:.5px solid var(--bt-line)}
+.bt-pc-input{flex:1;min-width:0;min-height:40px;max-height:160px;resize:none;border:.5px solid var(--bt-line-2);border-radius:20px;padding:9px 14px;background:var(--bt-card);color:var(--bt-ink);font:inherit;font-size:16px;line-height:1.4}
+.bt-pc-input:focus-visible,.bt-pc-choice:focus-visible{outline:2px solid var(--bt-accent);outline-offset:1px}
+`;
 
 // src/client/sidebar.js
 var import_react35 = require("react");
@@ -27158,31 +27258,28 @@ function promptCard(items) {
   const question = items.find((item) => item.tool === "Question" && Array.isArray(item.options));
   return question ? { kind: "question", detail: question.detail, options: question.options } : { kind: "approval", items, decisions: ["once", "always", "reject"] };
 }
-var MessageText = ({ text }) => (0, import_react62.createElement)("div", { style: { whiteSpace: "pre-wrap", overflowWrap: "anywhere" } }, text);
-function PcSessionPanel({ machine, name, url, close }) {
-  const [messages, setMessages] = (0, import_react62.useState)([]);
-  const [items, setItems] = (0, import_react62.useState)([]);
-  const [expanded, setExpanded] = (0, import_react62.useState)(false);
-  const [draft, setDraft] = (0, import_react62.useState)("");
-  const [error, setError] = (0, import_react62.useState)("");
-  const [busy, setBusy] = (0, import_react62.useState)(false);
-  const [refresh, setRefresh] = (0, import_react62.useState)(0);
+var MessageText = ({ text }) => (0, import_react62.createElement)("div", { className: "bt-pc-text" }, text);
+var DECISION = { once: "Allow once", always: "Always allow", reject: "Reject" };
+var mdLabels4 = () => ({ code: { copyLabel: t("Copy"), copiedLabel: t("Copied") }, footnotes: t("Footnotes") });
+var MessageBody = ({ text }) => import_dsh_client_ui_primitives.MarkdownText ? (0, import_react62.createElement)(import_dsh_client_ui_primitives.MarkdownText, { text, labels: mdLabels4(), variant: "compact" }) : (0, import_react62.createElement)(MessageText, { text });
+function usePcRemote(url, name, refresh) {
+  const [data, setData] = (0, import_react62.useState)({ messages: [], peers: [], pending: {}, loaded: false });
+  const [unreachable, setUnreachable] = (0, import_react62.useState)(false);
   (0, import_react62.useEffect)(() => {
     let stopped = false;
     let timer;
     const remote = createPcRemote({ url });
     const poll = async () => {
       try {
-        const [history, state] = await Promise.all([remote.messages(name), remote.state()]);
+        const [messages, state] = await Promise.all([name ? remote.messages(name) : [], remote.state()]);
         if (!stopped) {
-          setMessages(history);
-          setItems(state.pending?.[name] ?? []);
-          setError((current) => current === "PC unreachable" ? "" : current);
+          setData({ messages, peers: state.peers ?? [], pending: state.pending ?? {}, loaded: true });
+          setUnreachable(false);
         }
       } catch {
-        if (!stopped) setError("PC unreachable");
+        if (!stopped) setUnreachable(true);
       }
-      if (!stopped) timer = setTimeout(poll, 3e3);
+      if (!stopped) timer = setTimeout(poll, name ? 3e3 : 5e3);
     };
     void poll();
     return () => {
@@ -27190,8 +27287,22 @@ function PcSessionPanel({ machine, name, url, close }) {
       clearTimeout(timer);
     };
   }, [url, name, refresh]);
+  return [data, unreachable];
+}
+function PcSessionPanel({ machine, name, url, close, actions }) {
+  const [expanded, setExpanded] = (0, import_react62.useState)(false);
+  const [draft, setDraft] = (0, import_react62.useState)("");
+  const [error, setError] = (0, import_react62.useState)("");
+  const [busy, setBusy] = (0, import_react62.useState)(false);
+  const [refresh, setRefresh] = (0, import_react62.useState)(0);
+  const [data, unreachable] = usePcRemote(url, name, refresh);
+  const body = (0, import_react62.useRef)(null);
+  const atEnd = (0, import_react62.useRef)(true);
+  (0, import_react62.useEffect)(() => {
+    if (body.current && atEnd.current) body.current.scrollTop = body.current.scrollHeight;
+  }, [data.messages.length, name]);
   const run2 = async (fn) => {
-    if (busy) return;
+    if (busy) return void 0;
     setBusy(true);
     try {
       const result = await fn(createPcRemote({ url }));
@@ -27203,31 +27314,75 @@ function PcSessionPanel({ machine, name, url, close }) {
       setBusy(false);
       setRefresh((value) => value + 1);
     }
+    return void 0;
   };
-  const prompt = promptCard(items);
+  const head = (title, sub, back) => (0, import_react62.createElement)(
+    "div",
+    { className: "bt-pc-head" },
+    back ? (0, import_react62.createElement)("button", { type: "button", className: "bt-icon-btn", "aria-label": t("All PC sessions"), title: t("All PC sessions"), onClick: back }, (0, import_react62.createElement)(ChevronLeftIcon)) : null,
+    (0, import_react62.createElement)("div", { className: "bt-pc-title" }, (0, import_react62.createElement)("b", null, title), sub ? (0, import_react62.createElement)("span", null, sub) : null),
+    (0, import_react62.createElement)("button", { type: "button", className: "bt-icon-btn", "aria-label": t("Close panel"), title: t("Close panel"), onClick: close }, (0, import_react62.createElement)(CloseIcon))
+  );
+  const note = unreachable ? "PC unreachable" : error;
+  if (!name) {
+    return (0, import_react62.createElement)(
+      "aside",
+      { className: "bt-panel bt-pc-panel", "aria-label": t("PC sessions") },
+      head(t("PC sessions"), machine),
+      note ? (0, import_react62.createElement)("div", { className: "bt-pc-note", role: "status" }, t(note)) : null,
+      (0, import_react62.createElement)("div", { className: "bt-pc-list" }, (0, import_react62.createElement)(SessionList, { peers: data.peers, pending: data.pending, onOpen: (next) => actions.openPcSession(machine, next) }))
+    );
+  }
+  const label = name.replace(/^.*?::/, "").replaceAll("_", " ");
+  const tool = name.includes("::") ? name.split("::")[0] : "";
+  const prompt = promptCard(data.pending[name]);
   return (0, import_react62.createElement)(
     "aside",
-    { className: "bt-panel", style: { display: "flex", flexDirection: "column", padding: 16, gap: 10 }, "aria-label": t("PC session") },
-    (0, import_react62.createElement)("div", null, (0, import_react62.createElement)("strong", null, `${machine} · ${name}`), " ", (0, import_react62.createElement)("button", { type: "button", onClick: close }, t("Close"))),
-    error ? (0, import_react62.createElement)("div", { role: "status" }, t(error)) : null,
+    { className: "bt-panel bt-pc-panel", "aria-label": t("PC session") },
+    head(label, [tool, machine].filter(Boolean).join(" · "), () => actions.openPcSession(machine, null)),
+    note ? (0, import_react62.createElement)("div", { className: "bt-pc-note", role: "status" }, t(note)) : null,
     (0, import_react62.createElement)(
       "div",
-      { style: { flex: 1, overflowY: "auto" } },
-      messages.length > 200 && !expanded ? (0, import_react62.createElement)("button", { type: "button", onClick: () => setExpanded(true) }, t("Show earlier")) : null,
-      visibleMessages(messages, expanded).map((message, index) => (0, import_react62.createElement)("div", { key: index, style: { margin: "12px 0" } }, (0, import_react62.createElement)("strong", null, message.dir === "out" ? t("You") : name), (0, import_react62.createElement)(MessageText, { text: message.text ?? message.summary ?? "" })))
+      { className: "bt-pc-body", ref: body, onScroll: (event) => {
+        const el = event.currentTarget;
+        atEnd.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+      } },
+      data.messages.length > 200 && !expanded ? (0, import_react62.createElement)("button", { type: "button", className: "bt-pc-earlier", onClick: () => setExpanded(true) }, t("Show earlier")) : null,
+      visibleMessages(data.messages, expanded).map((message, index) => (0, import_react62.createElement)(
+        "div",
+        { key: index, className: `bt-pc-msg ${message.dir === "out" ? "bt-pc-out" : "bt-pc-in"}` },
+        // What you sent stays plain text: it sits on your bubble's colour, which Markdown would not follow.
+        (0, import_react62.createElement)(message.dir === "out" ? MessageText : MessageBody, { text: message.text || message.summary || "" })
+      ))
     ),
-    prompt ? (0, import_react62.createElement)("div", { role: "group" }, prompt.kind === "question" ? [(0, import_react62.createElement)(MessageText, { key: "detail", text: prompt.detail }), ...prompt.options.map((option) => (0, import_react62.createElement)("button", { key: option, type: "button", disabled: busy, onClick: () => void run2((remote) => remote.answer(name, option)) }, option))] : [prompt.items.map((item, index) => (0, import_react62.createElement)(MessageText, { key: index, text: `${item.tool}: ${item.detail}` })), ...prompt.decisions.map((decision) => (0, import_react62.createElement)("button", { key: decision, type: "button", disabled: busy, onClick: () => void run2((remote) => remote.decide(name, decision)) }, t({ once: "Allow once", always: "Always allow", reject: "Reject" }[decision])))]) : null,
+    prompt ? (0, import_react62.createElement)("div", { className: "bt-pc-prompt", role: "group", "aria-label": t("The session is asking") }, prompt.kind === "question" ? (0, import_react62.createElement)(import_react62.Fragment, null, (0, import_react62.createElement)(MessageText, { text: prompt.detail }), (0, import_react62.createElement)(
+      "div",
+      { className: "bt-pc-choices" },
+      prompt.options.map((option) => (0, import_react62.createElement)("button", { key: option, type: "button", className: "bt-pc-choice", disabled: busy, onClick: () => void run2((remote) => remote.answer(name, option)) }, option))
+    )) : (0, import_react62.createElement)(
+      import_react62.Fragment,
+      null,
+      (0, import_react62.createElement)("div", { className: "bt-pc-prompt-title" }, t("Needs your approval")),
+      prompt.items.map((item, index) => (0, import_react62.createElement)(MessageText, { key: index, text: `${item.tool}: ${item.detail}` })),
+      (0, import_react62.createElement)("div", { className: "bt-pc-choices" }, prompt.decisions.map((decision) => (0, import_react62.createElement)("button", {
+        key: decision,
+        type: "button",
+        className: decision === "once" ? "bt-send" : "bt-pc-choice",
+        disabled: busy,
+        onClick: () => void run2((remote) => remote.decide(name, decision))
+      }, t(DECISION[decision]))))
+    )) : null,
     (0, import_react62.createElement)(
       "form",
-      { onSubmit: (event) => {
+      { className: "bt-pc-compose", onSubmit: (event) => {
         event.preventDefault();
         const text = draft.trim();
         if (text) void run2((remote) => remote.send(name, text)).then((result) => {
           if (result?.sent) setDraft("");
         });
       } },
-      (0, import_react62.createElement)("textarea", { value: draft, onChange: (event) => setDraft(event.target.value), "aria-label": t("Message") }),
-      (0, import_react62.createElement)("button", { type: "submit", disabled: busy || !draft.trim() }, t("Send"))
+      (0, import_react62.createElement)("textarea", { className: "bt-pc-input", rows: 1, value: draft, placeholder: t("Message this session"), "aria-label": t("Message this session"), onChange: (event) => setDraft(event.target.value) }),
+      (0, import_react62.createElement)("button", { type: "submit", className: "bt-send", disabled: busy || !draft.trim() }, t("Send"))
     )
   );
 }
@@ -27283,7 +27438,7 @@ function Overlays({ useRoster, useUi, useSessions, useSessionStatus, useActivity
   return (0, import_react63.createElement)(
     import_react63.Fragment,
     null,
-    pane ? (0, import_react_dom11.createPortal)(pane.view === "pc" ? (0, import_react63.createElement)(PcSessionPanel, { key: pane.id, machine: pane.pcMachine, name: pane.pcName, url: (roster.pcRemotes ?? []).find((remote) => remote.machine === pane.pcMachine)?.url, close: actions.closePanel }) : (0, import_react63.createElement)(BotPanel, { pane, leaving: shown === null, room: layout.room, overlay: layout.panel === "overlay", roster, actions, useSessions, useSessionStatus, useActivity, useWork, useBrowserTabs, useBrowserPages, useBrowserHolds }), document.body) : null,
+    pane ? (0, import_react_dom11.createPortal)(pane.view === "pc" ? (0, import_react63.createElement)(PcSessionPanel, { key: pane.id, machine: pane.pcMachine, name: pane.pcName, url: (roster.pcRemotes ?? []).find((remote) => remote.machine === pane.pcMachine)?.url, close: actions.closePanel, actions }) : (0, import_react63.createElement)(BotPanel, { pane, leaving: shown === null, room: layout.room, overlay: layout.panel === "overlay", roster, actions, useSessions, useSessionStatus, useActivity, useWork, useBrowserTabs, useBrowserPages, useBrowserHolds }), document.body) : null,
     ui2.newChat ? (0, import_react_dom11.createPortal)((0, import_react63.createElement)(NewChat, { key: `${ui2.newChat}:${ui2.newChatSection ?? ""}`, mode: ui2.newChat, sectionId: ui2.newChatSection ?? null, paneLeft: layout.column, roster, actions }), document.body) : null,
     ui2.palette ? (0, import_react_dom11.createPortal)((0, import_react63.createElement)(CommandPalette, { key: ui2.palette.token, start: ui2.palette.query, token: ui2.palette.token, roster, actions, useSessions }), document.body) : null,
     ui2.exchange ? (0, import_react_dom11.createPortal)((0, import_react63.createElement)(ExchangeDialog, { pair: ui2.exchange, paneLeft: layout.column, roster, actions }), document.body) : null,
@@ -29711,7 +29866,7 @@ function apply(ctx) {
       else if (kind === "letgo") void actions.computerAllowForeground(botId);
     });
   }
-  actions.openPcSession = (machine, name) => ui2.set((state) => ({ ...state, details: `pc:${machine}:${name}`, pcMachine: machine, pcName: name, view: "pc", panelYield: true }));
+  actions.openPcSession = (machine, name) => ui2.set((state) => ({ ...state, details: `pc:${machine}:${name ?? ""}`, pcMachine: machine, pcName: name, view: "pc", panelYield: true }));
   const face = () => ({ actions, hooks: { roster, ui: ui2, pcSessions, activity, work, memoryNews, registry, turnClock, live, computer, cards, heldCards, browserPages, browserTabs, browserHolds, surface, update, frame, sidebarPref, settingsShellHeld } });
   ctx.effect(() => {
     const offStyles = installCompiledStyles(SETTINGS_SHELL_CSS, "settings-shell");
@@ -29898,7 +30053,7 @@ function apply(ctx) {
   };
   const SHELL_SHEETS = [
     [SHELL_CSS, "shell"],
-    [SIDEBAR_CSS, "sidebar"],
+    [SIDEBAR_CSS + PC_SESSIONS_CSS, "sidebar"],
     [SECRET_CSS + CONNECTOR_CSS + CONNECTORS_PAGE_CSS, "secrets"],
     [LEARNING_CSS, "learning"],
     [MODEL_CSS + FOLDER_CSS + BOT_SETTINGS_CSS + AGENT_CARDS_CSS + GROUP_SETTINGS_CSS + AVATAR_LIBRARY_CSS, "models"],

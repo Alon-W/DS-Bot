@@ -57,6 +57,7 @@ import { QueueDock, QUEUE_CSS } from './queue-dock.js'
 import { noticeApprovals } from './approval-notices.js'
 import { listedOpener } from './open-listed.js'
 import { createPcRemote } from './pc-remote.js'
+import { PC_SESSIONS_CSS } from './pc-sessions.js'
 
 export const inject = ['sessions', 'uiWorkspace', 'uiConversation', 'slots', 'theme', 'layout']
 
@@ -847,7 +848,7 @@ export function apply(ctx) {
       else if (kind === 'letgo') void actions.computerAllowForeground(botId)
     })
   }
-  actions.openPcSession = (machine, name) => ui.set(state => ({ ...state, details: `pc:${machine}:${name}`, pcMachine: machine, pcName: name, view: 'pc', panelYield: true }))
+  actions.openPcSession = (machine, name) => ui.set(state => ({ ...state, details: `pc:${machine}:${name ?? ''}`, pcMachine: machine, pcName: name, view: 'pc', panelYield: true }))
   const face = () => ({ actions, hooks: { roster, ui, pcSessions, activity, work, memoryNews, registry, turnClock, live, computer, cards, heldCards, browserPages, browserTabs, browserHolds, surface, update, frame, sidebarPref, settingsShellHeld } })
   // DS Bot holds the settings seat in every mode, Agent mode included: the bundle patch
   // turns DSH's own shell off, and this one draws DSH's settings pages in DS Bot's dialog.
@@ -1057,7 +1058,7 @@ export function apply(ctx) {
   // The shell group's sheets. Strip and panel styles also serve the side-chat tabs, which need no bridge.
   const SHELL_SHEETS = [
     [SHELL_CSS, 'shell'],
-    [SIDEBAR_CSS, 'sidebar'],
+    [SIDEBAR_CSS + PC_SESSIONS_CSS, 'sidebar'],
     [SECRET_CSS + CONNECTOR_CSS + CONNECTORS_PAGE_CSS, 'secrets'],
     [LEARNING_CSS, 'learning'],
     [MODEL_CSS + FOLDER_CSS + BOT_SETTINGS_CSS + AGENT_CARDS_CSS + GROUP_SETTINGS_CSS + AVATAR_LIBRARY_CSS, 'models'],
