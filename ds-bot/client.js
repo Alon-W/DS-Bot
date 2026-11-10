@@ -15380,22 +15380,32 @@ body[data-ds-dark-theme] .bt-pc-badge{background:var(--bt-accent)}
 .bt-pc-head{display:flex;align-items:center;gap:4px;min-height:52px;padding:8px 8px 8px 12px;border-bottom:.5px solid var(--bt-line)}
 .bt-pc-title{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
 .bt-pc-title b{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bt-pc-title span{font-size:12px;color:var(--bt-ink-3)}
-.bt-pc-head .bt-icon-btn{width:36px;height:36px;flex:none}
+.bt-pc-title span{font-size:12px;color:var(--bt-ink-2)}
+.bt-pc-head .bt-icon-btn{width:44px;height:44px;flex:none}
 .bt-pc-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:14px;display:flex;flex-direction:column;gap:12px}
 .bt-pc-list{flex:1;min-height:0;overflow-y:auto;padding:8px}
 .bt-pc-list .bt-agent-sub-row{padding:11px 12px;font-size:14px}
-.bt-pc-msg{max-width:88%;min-width:0;font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+/* Readable by docs/ACCESSIBILITY.md: full text colour, 15px (16px on phones), 1.55 line height. */
+.bt-pc-msg{max-width:88%;min-width:0;font-size:15px;line-height:1.55;overflow-wrap:anywhere;color:var(--bt-ink)}
+/* Links and inline code use the full text colour (DSH's own tones reach about 4.1:1 on light), links stay underlined. */
+.bt-pc-msg a{color:var(--bt-ink);text-decoration:underline;text-underline-offset:2px}
+.bt-pc-panel .bt-pc-msg :not(pre)>code{color:var(--bt-ink);font-size:max(12px,.9em)}
+.bt-pc-panel .bt-pc-msg :is(td,th){font-size:14px}
+/* DSH's compact Markdown draws code blocks near 10px and their labels at 11px; the guideline floor is 12px. */
+.bt-pc-msg pre,.bt-pc-msg pre code{font-size:13px}
+.bt-pc-msg [class*=_infostring_],.bt-pc-msg [class*=_copyButton_]{font-size:12px}
+.bt-pc-msg button{min-width:24px;min-height:24px}
 .bt-pc-msg pre{overflow-x:auto;max-width:100%}
 .bt-pc-text{white-space:pre-wrap}
 .bt-pc-in{align-self:flex-start}
 .bt-pc-out{align-self:flex-end;padding:8px 12px;border-radius:16px;background:var(--bt-user);color:var(--bt-user-ink)}
+@media (max-width:640px){.bt-pc-msg{font-size:16px}.bt-pc-list .bt-agent-sub-row{min-height:44px;font-size:15px}.bt-pc-prompt{font-size:15px}}
 .bt-pc-earlier{align-self:center;border:0;background:none;color:var(--bt-accent);font:inherit;font-size:13px;padding:6px 10px;cursor:pointer}
-.bt-pc-note{margin:10px 14px 0;padding:8px 12px;border-radius:10px;background:var(--bt-hover);font-size:13px;color:var(--bt-ink-2)}
+.bt-pc-note{margin:10px 14px 0;padding:8px 12px;border-radius:10px;background:var(--bt-hover);font-size:14px;color:var(--bt-ink)}
 .bt-pc-prompt{margin:0 14px 10px;padding:12px;border:.5px solid var(--bt-line-2);border-radius:12px;background:var(--bt-card);display:flex;flex-direction:column;gap:10px;font-size:13px}
 .bt-pc-prompt-title{font-weight:600}
 .bt-pc-choices{display:flex;flex-wrap:wrap;gap:8px}
-.bt-pc-choice{min-height:36px;padding:0 14px;border-radius:999px;border:.5px solid var(--bt-line-2);background:var(--bt-main);color:var(--bt-ink);font:inherit;font-size:14px;cursor:pointer}
+.bt-pc-choice{min-height:44px;padding:0 14px;border-radius:999px;border:.5px solid var(--bt-line-2);background:var(--bt-main);color:var(--bt-ink);font:inherit;font-size:14px;cursor:pointer}
 .bt-pc-choice:disabled{opacity:.5;cursor:default}
 .bt-pc-compose{display:flex;gap:8px;align-items:flex-end;padding:10px 14px;border-top:.5px solid var(--bt-line)}
 .bt-pc-input{flex:1;min-width:0;min-height:40px;max-height:160px;resize:none;border:.5px solid var(--bt-line-2);border-radius:20px;padding:9px 14px;background:var(--bt-card);color:var(--bt-ink);font:inherit;font-size:16px;line-height:1.4}
@@ -27263,7 +27273,7 @@ function promptCard(items) {
 var MessageText = ({ text }) => (0, import_react62.createElement)("div", { className: "bt-pc-text" }, text);
 var DECISION = { once: "Allow once", always: "Always allow", reject: "Reject" };
 var mdLabels4 = () => ({ code: { copyLabel: t("Copy"), copiedLabel: t("Copied") }, footnotes: t("Footnotes") });
-var MessageBody = ({ text }) => import_dsh_client_ui_primitives.MarkdownText ? (0, import_react62.createElement)(import_dsh_client_ui_primitives.MarkdownText, { text, labels: mdLabels4(), variant: "compact" }) : (0, import_react62.createElement)(MessageText, { text });
+var MessageBody = ({ text }) => import_dsh_client_ui_primitives.MarkdownText ? (0, import_react62.createElement)(import_dsh_client_ui_primitives.MarkdownText, { text, labels: mdLabels4() }) : (0, import_react62.createElement)(MessageText, { text });
 function usePcRemote(url, name, refresh) {
   const [data, setData] = (0, import_react62.useState)({ messages: [], peers: [], pending: {}, loaded: false });
   const [unreachable, setUnreachable] = (0, import_react62.useState)(false);

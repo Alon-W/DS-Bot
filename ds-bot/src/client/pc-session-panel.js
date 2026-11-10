@@ -14,9 +14,10 @@ export function promptCard(items) {
 export const MessageText = ({ text }) => h('div', { className: 'bt-pc-text' }, text)
 
 const DECISION = { once: 'Allow once', always: 'Always allow', reject: 'Reject' }
-// Session replies are Markdown; DSH's renderer draws them the way the Bots' own chats do.
+// Session replies are Markdown, drawn the way the Bots' own chats draw them. Not the
+// compact variant: it greys the text to 60%, below docs/ACCESSIBILITY.md's primary-text rule.
 const mdLabels = () => ({ code: { copyLabel: t('Copy'), copiedLabel: t('Copied') }, footnotes: t('Footnotes') })
-const MessageBody = ({ text }) => (MarkdownText ? h(MarkdownText, { text, labels: mdLabels(), variant: 'compact' }) : h(MessageText, { text }))
+const MessageBody = ({ text }) => (MarkdownText ? h(MarkdownText, { text, labels: mdLabels() }) : h(MessageText, { text }))
 
 // Polls one PC remote while open: the session's history and prompts, or with no session,
 // the list to pick one from.
